@@ -65,12 +65,12 @@ try { // Use a try block to perform cleanup in a finally block when the build fa
       stash includes: "ose3/pipeline-*.json", name: "artifact-template"
     }
 
-    // When testing a PR, create a new project to perform the build 
+    // When testing a PR, create a new project to perform the build
     // and deploy artifacts.
     if (isPR) {
       stage ('Create PR Project') {
         setBuildStatus(repoUrl, "ci/app-preview", "Building application", "PENDING", "")
-        setBuildStatus(repoUrl, "ci/approve", "Aprove after testing", "PENDING", "") 
+        setBuildStatus(repoUrl, "ci/approve", "Aprove after testing", "PENDING", "")
         project = uniqueName("${appName}-")
         sh "oc new-project ${project}"
         projectCreated=true
@@ -83,7 +83,7 @@ try { // Use a try block to perform cleanup in a finally block when the build fa
     stage ('Build') {
       sh "mvn clean compile ${mavenArgs}"
     }
-    
+
     stage ('Run Unit Tests') {
       sh "mvn test ${mavenArgs}"
     }
@@ -104,14 +104,14 @@ try { // Use a try block to perform cleanup in a finally block when the build fa
       if (isPR) {
         sh "oc process -f ose3/pipeline-pr-application-template.json -v BASE_NAMESPACE=${baseProject} -n ${project} | oc apply -f - -n ${project}"
       } else {
-        sh "oc process -f ose3/pipeline-application-template.json -n ${project} | oc apply -f - -n ${project}"
+        sh "oc process -f ose3/pipeline-application-s2i-template.json -n ${project} | oc apply -f - -n ${project}"
       }
       // sleep a bit to allow the imagestreams to be populated before we move on to building
       sh "sleep 30"
     }
 
     stage ('Build Image') {
-      sh "oc start-build ${appName}-docker --from-dir=./docker --follow -n ${project}"
+      sh "oc start-build ${appName}-s2i --from-dir=./docker --follow -n ${project}"
     }
 
     stage ('Deploy') {
@@ -124,7 +124,7 @@ try { // Use a try block to perform cleanup in a finally block when the build fa
       }
       def appHostName = getRouteHostname(previewAppName, project)
       setBuildStatus(repoUrl, "ci/app-preview", "The application is available", "SUCCESS", "http://${appHostName}")
-      setBuildStatus(repoUrl, "ci/approve", "Approve after testing", "PENDING", "${env.BUILD_URL}input/") 
+      setBuildStatus(repoUrl, "ci/approve", "Approve after testing", "PENDING", "${env.BUILD_URL}input/")
       stage ('Manual Test') {
         input "Is everything OK?"
       }
@@ -132,7 +132,7 @@ try { // Use a try block to perform cleanup in a finally block when the build fa
       setBuildStatus(repoUrl, "ci/approve", "Manually approved", "SUCCESS", "")
     }
   }
-} 
+}
 finally {
   if (projectCreated) {
     node {

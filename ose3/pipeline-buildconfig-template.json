@@ -5,7 +5,7 @@
     "name": "nationalparks-pipeline"
   },
   "labels": {
-    "application": "nationalparks-pipeline",
+    "app": "nationalparks-pipeline",
     "createdBy": "nationalparks-template"
   },
   "parameters": [
